@@ -8,19 +8,29 @@ using StreamHubApi.Context;
 using StreamHubApi.Interfaces;
 using StreamHubApi.Services;
 
-// 1. Cargar variables desde .env
-Env.Load();
+if (File.Exists(".env"))
+{
+    Env.Load();
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 2. Configurar SQLite con Entity Framework Core
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=streamhub.db";
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DefaultConnection")
+    ?? "Data Source=streamhub.db";
+
 builder.Services.AddDbContext<StreamHubDbContext>(options =>
     options.UseSqlite(connectionString));
 
-// 3. Configurar Autenticación JWT
-var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") 
-    ?? throw new InvalidOperationException("Falta JWT_SECRET_KEY en el archivo .env");
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+    ?? builder.Configuration["Jwt:SecretKey"]
+    ?? throw new InvalidOperationException("Falta JWT_SECRET_KEY");
 var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "StreamHubApi";
 var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "StreamHubClient";
 
@@ -47,7 +57,6 @@ builder.Services.AddScoped<ISuscripcionService, SuscripcionService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IPagoService, PagoService>();
 
-// 4. Configurar Swagger con botón Authorize
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -74,9 +83,10 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    
+    var db = scope.ServiceProvider.GetRequiredService<StreamHubDbContext>();
+    db.Database.Migrate();
 }
 
 app.UseSwagger();
@@ -87,7 +97,11 @@ app.UseSwaggerUI(options =>
     options.InjectJavascript("/swagger-es.js");
 });
 
-app.UseHttpsRedirection();
+if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORT")))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
