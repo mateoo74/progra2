@@ -37,6 +37,15 @@ namespace StreamHubApi.DTOs
         public string Nombre { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public DateTime FechaRegistro { get; set; }
+        public string Rol { get; set; } = string.Empty;
+    }
+
+    // Entrada para cambiar el rol de un usuario (solo Administrador)
+    public class UsuarioRolDto
+    {
+        [Required(ErrorMessage = "El rol es obligatorio (Usuario o Administrador).")]
+        [MaxLength(20)]
+        public string Rol { get; set; } = string.Empty;
     }
 
     // Salida del login con el token JWT

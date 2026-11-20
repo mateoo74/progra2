@@ -19,6 +19,11 @@ namespace StreamHubApi.Models
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
 
+        // "Usuario" (por defecto) o "Administrador". Nunca se asigna desde el registro público.
+        [Required]
+        [MaxLength(20)]
+        public string Rol { get; set; } = Roles.Usuario;
+
         public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
 
         // Relación 1 a muchos: Un usuario puede tener varias suscripciones (historial)

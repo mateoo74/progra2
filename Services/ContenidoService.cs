@@ -30,6 +30,23 @@ namespace StreamHubApi.Services
                 .ToListAsync();
         }
 
+                public async Task<IEnumerable<ContenidoAdminDto>> ObtenerTodosAdminAsync()
+        {
+            return await _context.Contenidos
+                .OrderBy(c => c.Id)
+                .Select(c => new ContenidoAdminDto
+                {
+                    Id = c.Id,
+                    Titulo = c.Titulo,
+                    Descripcion = c.Descripcion,
+                    Tipo = c.Tipo,
+                    Genero = c.Genero,
+                    ClasificacionEdad = c.ClasificacionEdad,
+                    UrlStream = c.UrlStream
+                })
+                .ToListAsync();
+        }
+
         public async Task<ContenidoCatalogoDto?> ObtenerPorIdAsync(int id)
         {
             var contenido = await _context.Contenidos.FindAsync(id);
@@ -115,7 +132,7 @@ namespace StreamHubApi.Services
                 return (false, false, null);
             }
 
-            // Buscamos la suscripción más reciente del usuario
+            //se busca la suscripcion mas reciente del usuario
             var suscripcion = await _context.Suscripciones
                 .Where(s => s.UsuarioId == usuarioId)
                 .OrderByDescending(s => s.FechaInicioPeriodo)
@@ -127,7 +144,7 @@ namespace StreamHubApi.Services
             }
 
             // Acceso permitido si está "Activa", o si fue "Cancelada" pero sigue dentro de los 30 días del período pagado
-            bool periodoVigente = suscripcion.FechaInicioPeriodo.AddDays(30) >= DateTime.UtcNow;
+            bool periodoVigente = suscripcion.FechaInicioPeriodo.AddMonths(1) >= DateTime.UtcNow;
             bool tieneAcceso = suscripcion.Estado.Equals("Activa", StringComparison.OrdinalIgnoreCase)
                 || (suscripcion.Estado.Equals("Cancelada", StringComparison.OrdinalIgnoreCase) && periodoVigente);
 

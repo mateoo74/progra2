@@ -39,6 +39,18 @@ namespace StreamHubApi.DTOs
         public string ClasificacionEdad { get; set; } = string.Empty;
     }
 
+    // Salida solo para el Administrador: incluye UrlStream para poder editar el contenido
+    public class ContenidoAdminDto
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public string Tipo { get; set; } = string.Empty;
+        public string Genero { get; set; } = string.Empty;
+        public string ClasificacionEdad { get; set; } = string.Empty;
+        public string UrlStream { get; set; } = string.Empty;
+    }
+
     // Salida exclusiva del endpoint GET /content/{content_id}/play cuando la suscripción está Activa
     public class PlayContentResponseDto
     {

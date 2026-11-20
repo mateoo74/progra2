@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StreamHubApi.DTOs;
 using StreamHubApi.Interfaces;
+using StreamHubApi.Models;
 
 namespace StreamHubApi.Controllers
 {
@@ -27,6 +28,16 @@ namespace StreamHubApi.Controllers
             return Ok(catalogo);
         }
 
+        // GET /content/admin - Listado completo con UrlStream (solo Administrador)
+        [Authorize(Roles = Roles.Administrador)]
+        [HttpGet("admin")]
+        [EndpointSummary("Listar contenidos con su URL de stream (solo Administrador)")]
+        public async Task<IActionResult> GetAllAdmin()
+        {
+            var lista = await _contenidoService.ObtenerTodosAdminAsync();
+            return Ok(lista);
+        }
+
         // GET /content/{id} - Detalle de un contenido específico
         [HttpGet("{id:int}")]
         [EndpointSummary("Obtener detalle de un contenido por ID")]
@@ -39,8 +50,8 @@ namespace StreamHubApi.Controllers
             return Ok(item);
         }
 
-        // POST /content - Crear nuevo contenido (requiere estar autenticado)
-        [Authorize]
+        // POST /content - Crear nuevo contenido (solo Administrador)
+        [Authorize(Roles = Roles.Administrador)]
         [HttpPost]
         [EndpointSummary("Publicar nuevo contenido en el catálogo")]
         public async Task<IActionResult> Create([FromBody] ContenidoCreateUpdateDto dto)
@@ -50,7 +61,7 @@ namespace StreamHubApi.Controllers
         }
 
         // PUT /content/{id} - Actualizar contenido existente
-        [Authorize]
+        [Authorize(Roles = Roles.Administrador)]
         [HttpPut("{id:int}")]
         [EndpointSummary("Actualizar un contenido existente")]
         public async Task<IActionResult> Update(int id, [FromBody] ContenidoCreateUpdateDto dto)
@@ -63,7 +74,7 @@ namespace StreamHubApi.Controllers
         }
 
         // DELETE /content/{id} - Eliminar contenido
-        [Authorize]
+        [Authorize(Roles = Roles.Administrador)]
         [HttpDelete("{id:int}")]
         [EndpointSummary("Eliminar un contenido del catálogo")]
         public async Task<IActionResult> Delete(int id)

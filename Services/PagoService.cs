@@ -23,11 +23,27 @@ namespace StreamHubApi.Services
             return $"SUB-{suscripcion.Id}-{periodo}";
         }
 
+        // Para cada usuario toma solo su suscripción más reciente (la misma que usa /play)
+        // y descarta las canceladas: no se les cobra ni se las reactiva.
+        private async Task<List<Suscripcion>> ObtenerSuscripcionesAFacturarAsync()
+        {
+            var todas = await _context.Suscripciones.ToListAsync();
+
+            return todas
+                .GroupBy(s => s.UsuarioId)
+                .Select(g => g.OrderByDescending(s => s.FechaInicioPeriodo)
+                              .ThenByDescending(s => s.Id)
+                              .First())
+                .Where(s => !string.Equals(s.Estado, "Cancelada", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         public async Task<Boleta> ObtenerOCrearBoletaActualAsync(Suscripcion suscripcion)
         {
-            var ahora = DateTime.UtcNow;
-            var periodo = ahora.ToString("yyyyMM");
-            var codigo = GenerarCodigoPago(suscripcion, ahora);
+            // El período lo define el inicio de facturación de la suscripción, no la fecha de hoy
+            var inicio = suscripcion.FechaInicioPeriodo;
+            var periodo = inicio.ToString("yyyyMM");
+            var codigo = GenerarCodigoPago(suscripcion, inicio);
 
             var existente = await _context.Boletas
                 .FirstOrDefaultAsync(b => b.SuscripcionId == suscripcion.Id && b.Periodo == periodo);
@@ -40,7 +56,7 @@ namespace StreamHubApi.Services
                 SuscripcionId = suscripcion.Id,
                 CodigoPago = codigo,
                 Periodo = periodo,
-                FechaVencimiento = suscripcion.FechaInicioPeriodo.AddDays(30),
+                FechaVencimiento = inicio.AddMonths(1),
                 Estado = "Pendiente"
             };
 
@@ -51,7 +67,7 @@ namespace StreamHubApi.Services
 
         public async Task<List<Boleta>> GenerarBoletasMesAsync()
         {
-            var suscripciones = await _context.Suscripciones.ToListAsync();
+            var suscripciones = await ObtenerSuscripcionesAFacturarAsync();
             var resultado = new List<Boleta>();
 
             foreach (var sub in suscripciones)
@@ -74,7 +90,7 @@ namespace StreamHubApi.Services
             client.DefaultRequestHeaders.Add("X-Api-Key", pasarela.ApiKey);
 
             var baseUrl = pasarela.UrlBase.TrimEnd('/');
-            var suscripciones = await _context.Suscripciones.ToListAsync();
+            var suscripciones = await ObtenerSuscripcionesAFacturarAsync();
             var ahora = DateTime.UtcNow;
 
             int aprobadas = 0;
@@ -110,14 +126,15 @@ namespace StreamHubApi.Services
                     boleta.Estado = "Pagada";
                     sub.Estado = "Activa";
                     aprobadas++;
+
+                    // Si el período ya terminó y está pago, pasamos al período siguiente
+                    if (ahora > boleta.FechaVencimiento)
+                        sub.FechaInicioPeriodo = sub.FechaInicioPeriodo.AddMonths(1);
                 }
                 else if (ahora > boleta.FechaVencimiento)
                 {
-                    if (!string.Equals(sub.Estado, "Cancelada", StringComparison.OrdinalIgnoreCase))
-                    {
-                        sub.Estado = "Pendiente de Pago";
-                        pendientesDePago++;
-                    }
+                    sub.Estado = "Pendiente de Pago";
+                    pendientesDePago++;
                 }
 
                 detalles.Add(new

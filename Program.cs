@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -43,6 +44,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
+            RoleClaimType = ClaimTypes.Role,
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
@@ -87,6 +89,18 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<StreamHubDbContext>();
     db.Database.Migrate();
+
+    // Administrador inicial: se define en el .env (ADMIN_EMAIL / ADMIN_PASSWORD).
+    var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+    var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+    if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
+    {
+        var usuarioService = scope.ServiceProvider.GetRequiredService<IUsuarioService>();
+        await usuarioService.AsegurarAdministradorAsync(
+            Environment.GetEnvironmentVariable("ADMIN_NOMBRE") ?? "Administrador",
+            adminEmail,
+            adminPassword);
+    }
 }
 
 app.UseSwagger();

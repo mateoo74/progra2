@@ -641,6 +641,52 @@
       aside { display: none; }
       main { margin-left: 0; }
     }
+
+    /* ===== PANEL DE ADMINISTRACIÓN ===== */
+    .admin-panel {
+      display: none;
+      position: fixed;
+      top: 54px; left: 0; right: 0; bottom: 0;
+      background: var(--bg-body);
+      z-index: 900;
+      overflow-y: auto;
+      padding: 18px 28px 40px;
+    }
+    .admin-panel.open { display: block; }
+    .admin-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+    .admin-head h2 { font-size: 22px; }
+    .admin-tabs { display: flex; gap: 6px; margin: 14px 0 12px; flex-wrap: wrap; }
+    .admin-tab { background: #2b2b33; color: var(--text-muted); border: none; border-radius: 5px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .admin-tab:hover { background: #3a3a44; color: var(--text-main); }
+    .admin-tab.active { background: var(--accent); color: #fff; }
+    .admin-msg { font-size: 13px; padding: 9px 12px; border-radius: 6px; margin-bottom: 12px; display: none; }
+    .admin-msg.ok { display: block; background: rgba(0,245,147,.12); border: 1px solid var(--ok); color: var(--ok); }
+    .admin-msg.err { display: block; background: rgba(255,79,77,.12); border: 1px solid var(--err); color: var(--err); }
+    .admin-toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+    .admin-muted { color: var(--text-muted); font-size: 13px; }
+    .admin-section { margin-bottom: 30px; }
+    .admin-section h3 { font-size: 16px; margin-bottom: 10px; }
+    .admin-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+    .admin-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .admin-table th { text-align: left; background: #1d1d22; color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .4px; padding: 10px 12px; }
+    .admin-table td { padding: 10px 12px; border-top: 1px solid var(--border); vertical-align: middle; }
+    .admin-table tr:hover td { background: rgba(255,255,255,.02); }
+    .admin-table small { color: var(--text-muted); display: block; }
+    .admin-actions { display: flex; gap: 6px; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .admin-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .admin-form .full { grid-column: 1 / -1; }
+    .admin-form label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; }
+    .admin-form input, .admin-form select, .admin-form textarea,
+    .admin-select { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; color: #fff; font-size: 13px; outline: none; font-family: inherit; }
+    .admin-select { width: auto; padding: 5px 8px; font-size: 12px; }
+    .admin-form textarea { resize: vertical; min-height: 70px; }
+    .admin-form-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .admin-pre { background: #101013; border: 1px solid var(--border); border-radius: 6px; padding: 10px; max-height: 300px; overflow: auto; font-size: 12px; color: #bf94ff; margin-top: 8px; }
+    .admin-stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
+    .admin-stat { background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; font-size: 12.5px; color: var(--text-muted); }
+    .admin-stat b { display: block; font-size: 20px; color: var(--text-main); }
   </style>
 </head>
 <body>
@@ -780,6 +826,23 @@
       </div>
       <div class="alert-msg" id="regError"></div>
     </div>
+  </div>
+
+
+  <!-- PANEL DE ADMINISTRACIÓN (solo visible para el rol Administrador) -->
+  <div class="admin-panel" id="adminPanel">
+    <div class="admin-head">
+      <h2>🛠 Panel de administración</h2>
+      <button class="btn btn-secondary" onclick="cerrarAdmin()">✕ Volver al catálogo</button>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab" id="admintab-contenido" onclick="adminTab('contenido')">Contenido</button>
+      <button class="admin-tab" id="admintab-usuarios" onclick="adminTab('usuarios')">Usuarios</button>
+      <button class="admin-tab" id="admintab-suscripciones" onclick="adminTab('suscripciones')">Suscripciones</button>
+      <button class="admin-tab" id="admintab-pagos" onclick="adminTab('pagos')">Pagos y pasarela</button>
+    </div>
+    <div class="admin-msg" id="adminMsg"></div>
+    <div id="adminBody"></div>
   </div>
 
   <script>
@@ -951,6 +1014,7 @@
     }
 
     function cerrarSesion() {
+      cerrarAdmin();
       token = null;
       usuario = null;
       localStorage.removeItem('sh_token');
@@ -972,6 +1036,7 @@
       }
 
       header.innerHTML = `
+        ${usuario.rol === 'Administrador' ? '<button class="btn btn-primary" onclick="abrirAdmin()">🛠 Panel Admin</button>' : ''}
         <span style="font-size:13.5px; font-weight:700;">👤 ${usuario.nombre}</span>
         <button class="btn btn-secondary" onclick="cerrarSesion()">Salir</button>
       `;
@@ -1115,6 +1180,336 @@
 
     function cerrarReproductor() {
       document.getElementById('watchModal').classList.remove('open');
+    }
+
+
+    // ================= PANEL DE ADMINISTRACIÓN =================
+    const ESTADOS_SUB = ['Activa', 'Pendiente de Pago', 'Cancelada'];
+    let adminTabActual = 'contenido';
+    let adminContenidos = [];
+
+    function esc(v) {
+      return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function fmtFecha(f) { return f ? new Date(f).toLocaleDateString('es-AR') : 'N/D'; }
+    function claseEstadoSub(e) {
+      return e === 'Activa' ? 'status-activa' : e === 'Pendiente de Pago' ? 'status-pendiente' : 'status-cancelada';
+    }
+    function valor(id) { return document.getElementById(id).value; }
+
+    function adminMsg(texto, ok = true) {
+      const el = document.getElementById('adminMsg');
+      el.textContent = texto;
+      el.className = 'admin-msg ' + (texto ? (ok ? 'ok' : 'err') : '');
+    }
+
+    async function adminApi(path, method = 'GET', body = null) {
+      const opts = { method, headers: { 'Authorization': `Bearer ${token}` } };
+      if (body !== null) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+      }
+      try {
+        const res = await fetch(path, opts);
+        const txt = await res.text();
+        let data = null;
+        if (txt) { try { data = JSON.parse(txt); } catch { data = txt; } }
+
+        if (!res.ok) {
+          let mensaje = (data && data.mensaje) || `Error ${res.status}`;
+          if (data && data.errors) mensaje = Object.values(data.errors).flat().join(' ');
+          if (res.status === 401) mensaje = 'Tu sesión venció o es inválida. Cerrá sesión y volvé a entrar.';
+          if (res.status === 403) mensaje = 'No tenés permisos de administrador. Cerrá sesión y volvé a entrar.';
+          return { ok: false, status: res.status, data, mensaje };
+        }
+        return { ok: true, status: res.status, data };
+      } catch (e) {
+        return { ok: false, status: 0, data: null, mensaje: 'No se pudo conectar con la API.' };
+      }
+    }
+
+    function abrirAdmin() {
+      if (!usuario || usuario.rol !== 'Administrador') return;
+      document.getElementById('adminPanel').classList.add('open');
+      adminTab(adminTabActual);
+    }
+    function cerrarAdmin() {
+      document.getElementById('adminPanel').classList.remove('open');
+    }
+
+    function adminTab(tab) {
+      adminTabActual = tab;
+      adminMsg('');
+      document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+      document.getElementById('admintab-' + tab).classList.add('active');
+      if (tab === 'contenido') renderAdminContenido();
+      else if (tab === 'usuarios') renderAdminUsuarios();
+      else if (tab === 'suscripciones') renderAdminSuscripciones();
+      else renderAdminPagos();
+    }
+
+    // ---------- CONTENIDO ----------
+    async function renderAdminContenido() {
+      const body = document.getElementById('adminBody');
+      body.innerHTML = '<p class="admin-muted">Cargando…</p>';
+      const r = await adminApi('/content/admin');
+      if (!r.ok) { body.innerHTML = ''; return adminMsg(r.mensaje, false); }
+      adminContenidos = r.data;
+
+      body.innerHTML = `
+        <div class="admin-toolbar">
+          <button class="btn btn-primary" onclick="adminFormContenido()">+ Nuevo contenido</button>
+          <span class="admin-muted">${adminContenidos.length} título(s) en el catálogo</span>
+        </div>
+        <div id="adminFormBox"></div>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>ID</th><th>Título</th><th>Tipo</th><th>Género</th><th>Clasif.</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${adminContenidos.length === 0 ? '<tr><td colspan="6" class="admin-muted">No hay contenido cargado todavía.</td></tr>' :
+              adminContenidos.map(c => `
+              <tr>
+                <td>${c.id}</td>
+                <td><b>${esc(c.titulo)}</b><small>${esc(c.urlStream)}</small></td>
+                <td>${esc(c.tipo)}</td>
+                <td>${esc(c.genero)}</td>
+                <td>${esc(c.clasificacionEdad)}</td>
+                <td><div class="admin-actions">
+                  <button class="btn btn-secondary btn-sm" onclick="adminFormContenido(${c.id})">Editar</button>
+                  <button class="btn btn-danger btn-sm" onclick="adminEliminarContenido(${c.id})">Eliminar</button>
+                </div></td>
+              </tr>`).join('')}
+          </tbody>
+        </table></div>`;
+    }
+
+    function adminFormContenido(id = 0) {
+      const c = id ? adminContenidos.find(x => x.id === id) : null;
+      const v = k => esc(c ? c[k] : '');
+      const opt = (valores, actual) => valores.map(x => `<option value="${esc(x)}" ${x === actual ? 'selected' : ''}>${esc(x)}</option>`).join('');
+
+      document.getElementById('adminFormBox').innerHTML = `
+        <div class="admin-card">
+          <h3 style="margin-bottom:12px;">${c ? 'Editar contenido #' + c.id : 'Nuevo contenido'}</h3>
+          <div class="admin-form">
+            <div><label>Título</label><input id="ac-titulo" value="${v('titulo')}" maxlength="150" /></div>
+            <div><label>Tipo</label><select id="ac-tipo">${opt(['Película', 'Serie'], c ? c.tipo : 'Película')}</select></div>
+            <div><label>Género</label><input id="ac-genero" value="${v('genero')}" maxlength="50" /></div>
+            <div><label>Clasificación de edad</label><select id="ac-clasif">${opt(['ATP', '+13', '+16', '+18'], c ? c.clasificacionEdad : 'ATP')}</select></div>
+            <div class="full"><label>Descripción</label><textarea id="ac-desc">${v('descripcion')}</textarea></div>
+            <div class="full"><label>URL del stream</label><input id="ac-url" value="${v('urlStream')}" placeholder="https://..." /></div>
+          </div>
+          <div class="admin-form-actions">
+            <button class="btn btn-primary" onclick="adminGuardarContenido(${id})">Guardar</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('adminFormBox').innerHTML=''">Cancelar</button>
+          </div>
+        </div>`;
+      document.getElementById('ac-titulo').focus();
+    }
+
+    async function adminGuardarContenido(id) {
+      const datos = {
+        titulo: valor('ac-titulo').trim(),
+        descripcion: valor('ac-desc').trim(),
+        tipo: valor('ac-tipo'),
+        genero: valor('ac-genero').trim(),
+        clasificacionEdad: valor('ac-clasif'),
+        urlStream: valor('ac-url').trim()
+      };
+      const r = await adminApi(id ? `/content/${id}` : '/content', id ? 'PUT' : 'POST', datos);
+      if (!r.ok) return adminMsg(r.mensaje, false);
+      await renderAdminContenido();
+      adminMsg(id ? 'Contenido actualizado.' : 'Contenido creado.');
+      cargarCatalogo();
+    }
+
+    async function adminEliminarContenido(id) {
+      const c = adminContenidos.find(x => x.id === id);
+      if (!confirm(`¿Eliminar "${c ? c.titulo : id}" del catálogo?`)) return;
+      const r = await adminApi(`/content/${id}`, 'DELETE');
+      if (!r.ok) return adminMsg(r.mensaje, false);
+      await renderAdminContenido();
+      adminMsg('Contenido eliminado.');
+      cargarCatalogo();
+    }
+
+    // ---------- USUARIOS ----------
+    async function renderAdminUsuarios() {
+      const body = document.getElementById('adminBody');
+      body.innerHTML = '<p class="admin-muted">Cargando…</p>';
+      const r = await adminApi('/users');
+      if (!r.ok) { body.innerHTML = ''; return adminMsg(r.mensaje, false); }
+
+      body.innerHTML = `
+        <div class="admin-toolbar"><span class="admin-muted">${r.data.length} usuario(s) registrado(s)</span></div>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Registro</th><th>Rol</th></tr></thead>
+          <tbody>
+            ${r.data.map(u => `
+              <tr>
+                <td>${u.id}</td>
+                <td><b>${esc(u.nombre)}</b></td>
+                <td>${esc(u.email)}</td>
+                <td>${fmtFecha(u.fechaRegistro)}</td>
+                <td>${u.id === usuario.id
+                  ? '<span class="admin-muted">Administrador (vos)</span>'
+                  : `<select class="admin-select" onchange="adminCambiarRol(${u.id}, this.value)">
+                       <option value="Usuario" ${u.rol === 'Usuario' ? 'selected' : ''}>Usuario</option>
+                       <option value="Administrador" ${u.rol === 'Administrador' ? 'selected' : ''}>Administrador</option>
+                     </select>`}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table></div>`;
+    }
+
+    async function adminCambiarRol(id, rol) {
+      const r = await adminApi(`/users/${id}/role`, 'PUT', { rol });
+      await renderAdminUsuarios();
+      if (!r.ok) return adminMsg(r.mensaje, false);
+      adminMsg(`Rol actualizado: ${r.data.nombre} ahora es ${r.data.rol}.`);
+    }
+
+    // ---------- SUSCRIPCIONES ----------
+    async function renderAdminSuscripciones() {
+      const body = document.getElementById('adminBody');
+      body.innerHTML = '<p class="admin-muted">Cargando…</p>';
+      const [rs, ru] = await Promise.all([adminApi('/subscriptions'), adminApi('/users')]);
+      if (!rs.ok) { body.innerHTML = ''; return adminMsg(rs.mensaje, false); }
+      const usuarios = {};
+      (ru.ok ? ru.data : []).forEach(u => usuarios[u.id] = u);
+
+      body.innerHTML = `
+        <div class="admin-toolbar">
+          <span class="admin-muted">${rs.data.length} suscripción(es). Al pasar una a "Activa" se reinicia su fecha de inicio de período.</span>
+        </div>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>ID</th><th>Usuario</th><th>Plan</th><th>Inicio de período</th><th>Estado</th><th>Cambiar estado</th></tr></thead>
+          <tbody>
+            ${rs.data.length === 0 ? '<tr><td colspan="6" class="admin-muted">No hay suscripciones.</td></tr>' :
+              rs.data.map(s => {
+                const u = usuarios[s.usuarioId];
+                return `
+                <tr>
+                  <td>${s.id}</td>
+                  <td><b>${esc(u ? u.nombre : 'Usuario #' + s.usuarioId)}</b>${u ? `<small>${esc(u.email)}</small>` : ''}</td>
+                  <td>${esc(s.tipoPlan)}</td>
+                  <td>${fmtFecha(s.fechaInicioPeriodo)}</td>
+                  <td><span class="sub-status-pill ${claseEstadoSub(s.estado)}" style="margin:0;">${esc(s.estado)}</span></td>
+                  <td><select class="admin-select" onchange="adminCambiarEstado(${s.id}, this.value)">
+                    ${ESTADOS_SUB.map(e => `<option ${e === s.estado ? 'selected' : ''}>${e}</option>`).join('')}
+                  </select></td>
+                </tr>`; }).join('')}
+          </tbody>
+        </table></div>`;
+    }
+
+    async function adminCambiarEstado(id, estado) {
+      const r = await adminApi(`/subscriptions/${id}/status`, 'PATCH', { estado });
+      await renderAdminSuscripciones();
+      if (!r.ok) return adminMsg(r.mensaje, false);
+      adminMsg(`Suscripción #${id} ahora está "${r.data.estado}".`);
+      actualizarEstadoSesion();
+    }
+
+    // ---------- PAGOS Y PASARELA ----------
+    async function renderAdminPagos() {
+      const body = document.getElementById('adminBody');
+      body.innerHTML = '<p class="admin-muted">Cargando…</p>';
+      const [rg, ri] = await Promise.all([adminApi('/gateways'), adminApi('/payments/invoices')]);
+      if (!rg.ok) { body.innerHTML = ''; return adminMsg(rg.mensaje, false); }
+      const boletas = ri.ok ? ri.data : [];
+
+      body.innerHTML = `
+        <div class="admin-section">
+          <h3>1. Pasarela de pagos</h3>
+          <p class="admin-muted" style="margin-bottom:10px;">La conciliación usa la última pasarela cargada.</p>
+          <div class="admin-table-wrap" style="margin-bottom:14px;"><table class="admin-table">
+            <thead><tr><th>ID</th><th>Nombre</th><th>URL base</th><th>API Key</th><th></th></tr></thead>
+            <tbody>
+              ${rg.data.length === 0 ? '<tr><td colspan="5" class="admin-muted">No hay ninguna pasarela configurada.</td></tr>' :
+                rg.data.map(g => `
+                <tr>
+                  <td>${g.id}</td><td><b>${esc(g.nombre)}</b></td><td>${esc(g.urlBase)}</td>
+                  <td>${esc((g.apiKey || '').slice(0, 4))}••••</td>
+                  <td><button class="btn btn-danger btn-sm" onclick="adminEliminarPasarela(${g.id})">Eliminar</button></td>
+                </tr>`).join('')}
+            </tbody>
+          </table></div>
+          <div class="admin-card">
+            <div class="admin-form">
+              <div><label>Nombre</label><input id="ag-nombre" placeholder="PayLink" /></div>
+              <div><label>URL base de la API</label><input id="ag-url" placeholder="https://..." /></div>
+              <div><label>API Key</label><input id="ag-key" placeholder="clave de acceso" /></div>
+            </div>
+            <div class="admin-form-actions"><button class="btn btn-primary" onclick="adminCrearPasarela()">Agregar pasarela</button></div>
+          </div>
+        </div>
+
+        <div class="admin-section">
+          <h3>2. Boletas y conciliación</h3>
+          <div class="admin-toolbar">
+            <button class="btn btn-secondary" onclick="adminGenerarBoletas()">Generar boletas del mes</button>
+            <button class="btn btn-primary" onclick="adminConciliar()">Conciliar pagos con la pasarela</button>
+          </div>
+          <div id="adminResultado"></div>
+          <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr><th>ID</th><th>Suscripción</th><th>Código de pago</th><th>Período</th><th>Vencimiento</th><th>Estado</th></tr></thead>
+            <tbody>
+              ${boletas.length === 0 ? '<tr><td colspan="6" class="admin-muted">Todavía no hay boletas.</td></tr>' :
+                boletas.map(b => `
+                <tr>
+                  <td>${b.id}</td><td>#${b.suscripcionId}</td><td><code>${esc(b.codigoPago)}</code></td>
+                  <td>${esc(b.periodo)}</td><td>${fmtFecha(b.fechaVencimiento)}</td>
+                  <td><span class="sub-status-pill ${b.estado === 'Pagada' ? 'status-activa' : 'status-pendiente'}" style="margin:0;">${esc(b.estado)}</span></td>
+                </tr>`).join('')}
+            </tbody>
+          </table></div>
+        </div>`;
+    }
+
+    async function adminCrearPasarela() {
+      const datos = { nombre: valor('ag-nombre').trim(), urlBase: valor('ag-url').trim(), apiKey: valor('ag-key').trim() };
+      if (!datos.nombre || !datos.urlBase || !datos.apiKey) return adminMsg('Completá nombre, URL base y API Key.', false);
+      const r = await adminApi('/gateways', 'POST', datos);
+      if (!r.ok) return adminMsg(r.mensaje, false);
+      await renderAdminPagos();
+      adminMsg('Pasarela agregada.');
+    }
+
+    async function adminEliminarPasarela(id) {
+      if (!confirm('¿Eliminar esta pasarela?')) return;
+      const r = await adminApi(`/gateways/${id}`, 'DELETE');
+      if (!r.ok) return adminMsg(r.mensaje, false);
+      await renderAdminPagos();
+      adminMsg('Pasarela eliminada.');
+    }
+
+    async function adminGenerarBoletas() {
+      const r = await adminApi('/payments/invoices/generate', 'POST');
+      if (!r.ok) return adminMsg(r.mensaje, false);
+      await renderAdminPagos();
+      adminMsg(`Listo: hay ${r.data.length} boleta(s) para el período actual.`);
+    }
+
+    async function adminConciliar() {
+      adminMsg('Consultando la pasarela…');
+      const r = await adminApi('/payments/reconcile', 'POST');
+      if (!r.ok) return adminMsg(r.mensaje, false);
+      const d = r.data;
+      await renderAdminPagos();
+      document.getElementById('adminResultado').innerHTML = `
+        <div class="admin-card">
+          <strong>Resultado de la conciliación</strong>
+          <div class="admin-stats">
+            <div class="admin-stat"><b>${d.totalEvaluadas}</b>evaluadas</div>
+            <div class="admin-stat"><b>${d.activasPorPago}</b>activas por pago</div>
+            <div class="admin-stat"><b>${d.marcadasPendienteDePago}</b>pasaron a pendiente</div>
+          </div>
+          <details><summary class="admin-muted" style="cursor:pointer;">Ver detalle por suscripción</summary>
+            <pre class="admin-pre">${esc(JSON.stringify(d.detalle, null, 2))}</pre>
+          </details>
+        </div>`;
+      adminMsg('Conciliación terminada.');
+      actualizarEstadoSesion();
     }
 
     cargarCatalogo();

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StreamHubApi.Context;
 using StreamHubApi.Interfaces;
+using StreamHubApi.Models;
 
 namespace StreamHubApi.Controllers
 {
@@ -20,7 +21,7 @@ namespace StreamHubApi.Controllers
             _context = context;
         }
 
-        [Authorize]
+        [Authorize(Roles = Roles.Administrador)]
         [HttpPost("invoices/generate")]
         [EndpointSummary("Genera las boletas del mes actual para las suscripciones existentes")]
         public async Task<IActionResult> GenerateCurrentInvoices()
@@ -29,7 +30,7 @@ namespace StreamHubApi.Controllers
             return Ok(boletas);
         }
 
-        [Authorize]
+        [Authorize(Roles = Roles.Administrador)]
         [HttpGet("invoices")]
         [EndpointSummary("Lista las boletas generadas")]
         public async Task<IActionResult> GetInvoices()
@@ -38,7 +39,7 @@ namespace StreamHubApi.Controllers
             return Ok(lista);
         }
 
-        [Authorize]
+        [Authorize(Roles = Roles.Administrador)]
         [HttpPost("reconcile")]
         [EndpointSummary("Verifica pagos en PayLink y actualiza estados de suscripciones")]
         public async Task<IActionResult> Reconcile()

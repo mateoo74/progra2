@@ -41,7 +41,8 @@ namespace StreamHubApi.Services
                 Id = nuevoUsuario.Id,
                 Nombre = nuevoUsuario.Nombre,
                 Email = nuevoUsuario.Email,
-                FechaRegistro = nuevoUsuario.FechaRegistro
+                FechaRegistro = nuevoUsuario.FechaRegistro,
+                Rol = nuevoUsuario.Rol
             };
         }
 
@@ -63,7 +64,8 @@ namespace StreamHubApi.Services
                     Id = usuario.Id,
                     Nombre = usuario.Nombre,
                     Email = usuario.Email,
-                    FechaRegistro = usuario.FechaRegistro
+                    FechaRegistro = usuario.FechaRegistro,
+                    Rol = usuario.Rol
                 }
             };
         }
@@ -78,8 +80,70 @@ namespace StreamHubApi.Services
                 Id = usuario.Id,
                 Nombre = usuario.Nombre,
                 Email = usuario.Email,
-                FechaRegistro = usuario.FechaRegistro
+                FechaRegistro = usuario.FechaRegistro,
+                Rol = usuario.Rol
             };
+        }
+
+        public async Task<IEnumerable<UsuarioResponseDto>> ObtenerTodosAsync()
+        {
+            return await _context.Usuarios
+                .OrderBy(u => u.Id)
+                .Select(u => new UsuarioResponseDto
+                {
+                    Id = u.Id,
+                    Nombre = u.Nombre,
+                    Email = u.Email,
+                    FechaRegistro = u.FechaRegistro,
+                    Rol = u.Rol
+                })
+                .ToListAsync();
+        }
+
+        public async Task<UsuarioResponseDto?> CambiarRolAsync(int id, string nuevoRol)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return null;
+
+            usuario.Rol = nuevoRol;
+            await _context.SaveChangesAsync();
+
+            return new UsuarioResponseDto
+            {
+                Id = usuario.Id,
+                Nombre = usuario.Nombre,
+                Email = usuario.Email,
+                FechaRegistro = usuario.FechaRegistro,
+                Rol = usuario.Rol
+            };
+        }
+
+        // Se usa al arrancar la app: crea (o promueve) el administrador inicial definido en el .env.
+        public async Task AsegurarAdministradorAsync(string nombre, string email, string password)
+        {
+            var existente = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (existente == null)
+            {
+                _context.Usuarios.Add(new Usuario
+                {
+                    Nombre = nombre,
+                    Email = email,
+                    PasswordHash = HashearPassword(password),
+                    FechaRegistro = DateTime.UtcNow,
+                    Rol = Roles.Administrador
+                });
+            }
+            else if (existente.Rol != Roles.Administrador)
+            {
+                existente.Rol = Roles.Administrador;
+            }
+            else
+            {
+                return;
+            }
+
+            await _context.SaveChangesAsync();
         }
 
         private static string HashearPassword(string password)
@@ -102,7 +166,8 @@ namespace StreamHubApi.Services
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Email, usuario.Email),
-                new Claim(ClaimTypes.Name, usuario.Nombre)
+                new Claim(ClaimTypes.Name, usuario.Nombre),
+                new Claim(ClaimTypes.Role, usuario.Rol)
             };
 
             var token = new JwtSecurityToken(

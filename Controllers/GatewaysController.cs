@@ -18,7 +18,7 @@ namespace StreamHubApi.Controllers
             _context = context;
         }
 
-        [Authorize]
+        [Authorize(Roles = Roles.Administrador)]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -26,7 +26,7 @@ namespace StreamHubApi.Controllers
             return Ok(lista);
         }
 
-        [Authorize]
+        [Authorize(Roles = Roles.Administrador)]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] PasarelaPago pasarela)
         {
@@ -34,6 +34,19 @@ namespace StreamHubApi.Controllers
             _context.PasarelasPago.Add(pasarela);
             await _context.SaveChangesAsync();
             return Ok(pasarela);
+        }
+
+        [Authorize(Roles = Roles.Administrador)]
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var pasarela = await _context.PasarelasPago.FindAsync(id);
+            if (pasarela == null)
+                return NotFound(new { mensaje = $"No se encontró la pasarela con ID {id}." });
+
+            _context.PasarelasPago.Remove(pasarela);
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
     }
 }

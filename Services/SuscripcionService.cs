@@ -49,6 +49,15 @@ namespace StreamHubApi.Services
             return lista.Select(MapearDto);
         }
 
+        public async Task<IEnumerable<SuscripcionResponseDto>> ObtenerTodasAsync()
+        {
+            var lista = await _context.Suscripciones
+                .OrderByDescending(s => s.Id)
+                .ToListAsync();
+
+            return lista.Select(MapearDto);
+        }
+
         public async Task<SuscripcionResponseDto?> ActualizarEstadoAsync(int suscripcionId, string nuevoEstado)
         {
             var suscripcion = await _context.Suscripciones.FindAsync(suscripcionId);

@@ -6,6 +6,7 @@ namespace StreamHubApi.Interfaces
     {
         Task<IEnumerable<ContenidoCatalogoDto>> ObtenerTodosAsync();
         Task<ContenidoCatalogoDto?> ObtenerPorIdAsync(int id);
+        Task<IEnumerable<ContenidoAdminDto>> ObtenerTodosAdminAsync();
         Task<ContenidoCatalogoDto> CrearAsync(ContenidoCreateUpdateDto dto);
         Task<ContenidoCatalogoDto?> ActualizarAsync(int id, ContenidoCreateUpdateDto dto);
         Task<bool> EliminarAsync(int id);
